@@ -78,7 +78,11 @@ app.use('/api/admin', adminRoutes);
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Endpoint tidak ditemukan.' });
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  // Di serverless (Vercel), / dilayani oleh CDN dari public/index.html;
+  // fallback ini untuk lokal maupun path SPA yang tidak punya file statis.
+  res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+    if (err && !res.headersSent) res.redirect('/');
+  });
 });
 
 // Hanya listen saat dijalankan langsung (bukan saat di-import oleh serverless Vercel)
