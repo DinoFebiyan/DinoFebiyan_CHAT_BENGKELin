@@ -7,8 +7,11 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'bengkelin',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: Number(process.env.DB_POOL || 5),
   charset: 'utf8mb4_unicode_ci',
+  // Aktifkan SSL untuk database remote (mis. Aiven, PlanetScale, TiDB, Railway):
+  // set DB_SSL=1 di environment
+  ...(process.env.DB_SSL === '1' ? { ssl: { rejectUnauthorized: true } } : {}),
 });
 
 module.exports = pool;

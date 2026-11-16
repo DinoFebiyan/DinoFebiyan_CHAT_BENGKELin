@@ -1,6 +1,6 @@
 const KATEGORI = ['Jasa Bengkel', 'Bahan Bakar', 'Kunci Serep', 'Suku Cadang & Oli'];
 const KATEGORI_JASA = ['Jasa Bengkel', 'Kunci Serep'];
-const BENGKEL_STATUS = ['pending', 'active', 'rejected'];
+const BENGKEL_STATUS = ['pending', 'active', 'rejected', 'suspended'];
 
 function isServiceKategori(kategori) {
   return KATEGORI_JASA.includes(kategori);

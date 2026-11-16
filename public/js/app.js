@@ -105,6 +105,28 @@ const BRAND_SVG = `<div class="brand-icon" aria-hidden="true">
   </svg>
 </div>`;
 
+/* ============ TOGGLE TAMPILKAN PASSWORD (tanda mata) ============ */
+document.querySelectorAll('.pw-toggle').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    if (!input) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.querySelector('.eye-open').classList.toggle('hidden', show);
+    btn.querySelector('.eye-off').classList.toggle('hidden', !show);
+    btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+  });
+});
+
+function resetPasswordVisibility() {
+  document.querySelectorAll('.pw-toggle').forEach((btn) => {
+    const input = document.getElementById(btn.dataset.target);
+    if (input) input.type = 'password';
+    btn.querySelector('.eye-open').classList.remove('hidden');
+    btn.querySelector('.eye-off').classList.add('hidden');
+  });
+}
+
 function renderNav() {
   const navRight = $('navRight');
   if (state.user) {
@@ -151,6 +173,7 @@ function showAuth(tab) {
 
 function hideAuth() {
   $('authScreen').classList.add('hidden');
+  showLoginError('');
 }
 
 async function doLogout() {
@@ -165,6 +188,7 @@ $('tabLogin').addEventListener('click', () => {
   $('tabRegister').classList.remove('active');
   $('loginForm').classList.remove('hidden');
   $('registerForm').classList.add('hidden');
+  showLoginError('');
 });
 
 $('tabRegister').addEventListener('click', () => {
@@ -180,8 +204,20 @@ $('authScreen').addEventListener('click', (e) => {
   if (e.target === $('authScreen')) hideAuth();
 });
 
+function showLoginError(message) {
+  const box = $('loginError');
+  if (!message) {
+    box.classList.add('hidden');
+    box.textContent = '';
+    return;
+  }
+  box.textContent = message;
+  box.classList.remove('hidden');
+}
+
 $('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  showLoginError('');
   try {
     const data = await api('/api/auth/login', {
       method: 'POST',
@@ -191,12 +227,17 @@ $('loginForm').addEventListener('submit', async (e) => {
     showApp();
     showToast('Selamat datang, ' + data.user.nama.split(' ')[0] + '!');
   } catch (err) {
-    showToast(err.message, true);
+    showLoginError(err.message || 'Login gagal. Periksa email dan password Anda.');
   }
 });
 
 $('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if ($('regPassword').value !== $('regPassword2').value) {
+    showToast('Konfirmasi password tidak cocok dengan password.', true);
+    $('regPassword2').focus();
+    return;
+  }
   try {
     const data = await api('/api/auth/register', {
       method: 'POST',
@@ -212,6 +253,7 @@ $('registerForm').addEventListener('submit', async (e) => {
     showToast(data.message || 'Pendaftaran berhasil! Tunggu persetujuan admin.');
     hideAuth();
     $('registerForm').reset();
+    resetPasswordVisibility();
   } catch (err) {
     showToast(err.message, true);
   }
@@ -364,6 +406,7 @@ $('itemModal').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!$('itemModal').classList.contains('hidden')) closeItemModal();
+    if (!$('emergencyModal').classList.contains('hidden')) closeEmergencyModal();
     if (!$('authScreen').classList.contains('hidden')) hideAuth();
   }
 });
@@ -372,13 +415,61 @@ $('searchInput').addEventListener('input', loadCatalog);
 $('categoryFilter').addEventListener('change', loadCatalog);
 $('sortSelect').addEventListener('change', loadCatalog);
 
-$('btnQuickSOS').addEventListener('click', () => {
-  const url = buildWhatsAppUrl(null);
-  if (!url) return showToast('Belum ada mitra bengkel aktif.', true);
-  window.open(url, '_blank', 'noopener,noreferrer');
+/* ============ PANGGIL DARURAT (mitra terlama = terpercaya) ============ */
+let emergencyBengkel = null;
+
+function buildEmergencyMessage() {
+  const riderName = $('riderName').value.trim() || 'Pengendara';
+  const riderLocation = $('riderLocation').value.trim() || 'Belum diisi (akan kirim shareloc)';
+  return [
+    `Halo Mitra *BENGKELIN!* (${emergencyBengkel.nama_bengkel}), saya butuh BANTUAN DARURAT kendaraan:`,
+    ``,
+    `*Pemesan/Kendaraan:* ${riderName}`,
+    `*Patokan Lokasi:* ${riderLocation}`,
+    `*Kondisi:* Saya belum yakin kerusakannya, mohon bantuan pemeriksaan di lokasi.`,
+    ``,
+    `Mohon segera datang & konfirmasi estimasi tiba. Terima kasih!`,
+  ].join('\n');
+}
+
+async function openEmergencyModal() {
+  try {
+    const data = await api('/api/emergency-bengkel');
+    emergencyBengkel = data.bengkel;
+    const since = new Date(emergencyBengkel.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+    $('emgShopInfo').innerHTML = `
+      <strong>${escapeHTML(emergencyBengkel.nama_bengkel)}</strong>
+      <span>Mitra terlama — bergabung sejak ${since}</span>`;
+    $('emgMessage').value = buildEmergencyMessage();
+    $('emergencyModal').classList.remove('hidden');
+    $('emergencyModal').setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function closeEmergencyModal() {
+  $('emergencyModal').classList.add('hidden');
+  $('emergencyModal').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+$('btnEmergency').addEventListener('click', openEmergencyModal);
+$('emgClose').addEventListener('click', closeEmergencyModal);
+$('emergencyModal').addEventListener('click', (e) => {
+  if (e.target === $('emergencyModal')) closeEmergencyModal();
 });
 
-/* Footer: daftar kategori & tautan mitra */
+$('emgSendBtn').addEventListener('click', () => {
+  if (!emergencyBengkel) return;
+  const phone = emergencyBengkel.nomor_wa.replace(/[^0-9]/g, '');
+  const text = $('emgMessage').value.trim() || buildEmergencyMessage();
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  closeEmergencyModal();
+});
+
+$('searchInput').addEventListener('input', loadCatalog);
 function renderFooterKategori() {
   const ul = $('footerKategori');
   ul.innerHTML = state.kategori
@@ -483,16 +574,16 @@ function renderBengkelTable() {
       const thumb = `<img src="${escapeHTML(itemImage(item))}" alt="${escapeHTML(item.nama)}" />`;
       return `
         <tr>
-          <td>
+          <td data-label="Layanan">
             <div class="item-cell">
               <div class="table-thumb">${thumb}</div>
               <strong>${escapeHTML(item.nama)}</strong>
             </div>
           </td>
-          <td>${escapeHTML(item.kategori)}</td>
-          <td>${formatRupiah(item.harga)}</td>
-          <td><span class="status-pill ${item.stok > 0 ? 'active' : 'rejected'}">${availabilityLabel(item)}</span></td>
-          <td>
+          <td data-label="Kategori">${escapeHTML(item.kategori)}</td>
+          <td data-label="Harga">${formatRupiah(item.harga)}</td>
+          <td data-label="Ketersediaan"><span class="status-pill ${item.stok > 0 ? 'active' : 'rejected'}">${availabilityLabel(item)}</span></td>
+          <td data-label="Aksi">
             <div class="action-btns">
               <button type="button" class="btn btn-outline btn-sm" data-edit="${item.id}">Edit</button>
               <button type="button" class="btn btn-danger btn-sm" data-del="${item.id}">Hapus</button>
@@ -698,6 +789,7 @@ const STATUS_LABEL = {
   pending: 'Menunggu',
   active: 'Mitra Aktif',
   rejected: 'Ditolak',
+  suspended: 'Nonaktif',
 };
 
 function renderAdminBengkelTable(list) {
@@ -710,21 +802,27 @@ function renderAdminBengkelTable(list) {
     .map(
       (b) => `
       <tr>
-        <td>
+        <td data-label="Bengkel">
           <strong>${escapeHTML(b.nama_bengkel)}</strong><br />
           <span class="shop-sub">${escapeHTML(b.alamat || '—')}</span>
         </td>
-        <td>
+        <td data-label="Pemilik">
           ${escapeHTML(b.nama_akun)}<br />
           <span class="shop-sub">${escapeHTML(b.email)}</span>
         </td>
-        <td>${escapeHTML(b.nomor_wa)}</td>
-        <td>${b.total_layanan} item<br /><span class="shop-sub">stok ${b.total_stok}</span></td>
-        <td><span class="status-pill ${escapeHTML(b.status)}">${STATUS_LABEL[b.status] || escapeHTML(b.status)}</span></td>
-        <td>
+        <td data-label="WhatsApp">${escapeHTML(b.nomor_wa)}</td>
+        <td data-label="Layanan">${b.total_layanan} item<br /><span class="shop-sub">stok ${b.total_stok}</span></td>
+        <td data-label="Status"><span class="status-pill ${escapeHTML(b.status)}">${STATUS_LABEL[b.status] || escapeHTML(b.status)}</span></td>
+        <td data-label="Aksi">
           <div class="action-btns">
-            ${b.status !== 'active' ? `<button type="button" class="btn btn-ok btn-sm" data-status="${b.id}" data-val="active">Setujui</button>` : ''}
-            ${b.status !== 'rejected' ? `<button type="button" class="btn btn-outline btn-sm" data-status="${b.id}" data-val="rejected">Tolak</button>` : ''}
+            ${
+              b.status === 'pending' || b.status === 'rejected'
+                ? `<button type="button" class="btn btn-ok btn-sm" data-status="${b.id}" data-val="active">Setujui</button>
+                   ${b.status === 'pending' ? `<button type="button" class="btn btn-outline btn-sm" data-status="${b.id}" data-val="rejected">Tolak</button>` : ''}`
+                : b.status === 'active'
+                  ? `<button type="button" class="btn btn-outline btn-sm" data-status="${b.id}" data-val="suspended">Nonaktifkan</button>`
+                  : `<button type="button" class="btn btn-ok btn-sm" data-status="${b.id}" data-val="active">Aktifkan</button>`
+            }
             <button type="button" class="btn btn-danger btn-sm" data-delbengkel="${b.id}">Hapus</button>
           </div>
         </td>
@@ -734,12 +832,18 @@ function renderAdminBengkelTable(list) {
 
   tbody.querySelectorAll('[data-status]').forEach((btn) =>
     btn.addEventListener('click', async () => {
+      const val = btn.dataset.val;
       try {
         await api(`/api/admin/bengkel/${btn.dataset.status}/status`, {
           method: 'PUT',
-          body: { status: btn.dataset.val },
+          body: { status: val },
         });
-        showToast(btn.dataset.val === 'active' ? 'Bengkel disetujui sebagai mitra.' : 'Bengkel ditolak.');
+        const msg = {
+          active: 'Bengkel disetujui & diaktifkan.',
+          rejected: 'Pendaftaran bengkel ditolak.',
+          suspended: 'Bengkel dinonaktifkan — katalog disembunyikan dari publik.',
+        };
+        showToast(msg[val] || 'Status bengkel diperbarui.');
         loadAdminPanel();
       } catch (err) {
         showToast(err.message, true);

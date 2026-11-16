@@ -56,7 +56,7 @@
               <input type="text" id="riderLocation" placeholder="Mis. Jl. Ahmad Yani depan SPBU..." />
             </div>
             <div>
-              <button type="button" id="btnQuickSOS" class="btn btn-sos">Panggil SOS Darurat</button>
+              <button type="button" id="btnEmergency" class="btn btn-sos">Panggil Darurat</button>
             </div>
           </div>
 
@@ -119,7 +119,11 @@
               </div>
               <div class="field-group">
                 <label for="pfPassword">Password Baru (Opsional)</label>
-                <input type="password" id="pfPassword" minlength="6" placeholder="Biarkan kosong jika tidak ingin diganti" />
+                <input type="password" id="pfPassword" minlength="6" placeholder="Biarkan kosong jika tidak ingin diganti" autocomplete="new-password" />
+                <button type="button" class="pw-toggle" data-target="pfPassword" aria-label="Tampilkan password">
+                  <span class="eye-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                  <span class="eye-off hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span>
+                </button>
               </div>
               <div>
                 <button type="submit" class="btn btn-primary">Simpan Informasi Bengkel</button>
@@ -242,7 +246,11 @@
                 </div>
                 <div class="field-group">
                   <label for="bkPassword">Password Akun (min. 6 karakter) *</label>
-                  <input type="password" id="bkPassword" required minlength="6" placeholder="Password" />
+                  <input type="password" id="bkPassword" required minlength="6" placeholder="Password" autocomplete="new-password" />
+                  <button type="button" class="pw-toggle" data-target="bkPassword" aria-label="Tampilkan password">
+                    <span class="eye-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                    <span class="eye-off hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span>
+                  </button>
                 </div>
                 <div class="field-group">
                   <label for="bkWa">Nomor WhatsApp Penerima Pesanan *</label>
@@ -356,6 +364,27 @@
     </div>
   </div>
 
+  <!-- ============ MODAL PANGGIL DARURAT ============ -->
+  <div id="emergencyModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close" id="emgClose" aria-label="Tutup">×</button>
+      <div class="modal-body" style="padding-top:26px;">
+        <span class="badge-cat">Darurat</span>
+        <h3 class="modal-title">Panggil Darurat</h3>
+        <p class="modal-desc">
+          Bingung menentukan kerusakan kendaraan? Kirim pesan darurat ke mitra <strong>terpercaya</strong> kami — bengkel dengan masa kerja terlama di BENGKELIN!.
+        </p>
+        <div class="emg-shop" id="emgShopInfo"></div>
+        <div class="field-group">
+          <label for="emgMessage">Pesan Darurat (bisa Anda ubah)</label>
+          <textarea id="emgMessage" rows="8"></textarea>
+        </div>
+        <button type="button" id="emgSendBtn" class="btn btn-wa">Kirim via WhatsApp</button>
+        <p class="modal-hint">Pesan akan dikirim ke WhatsApp mitra terpilih. Untuk iterasi berikutnya, pemanggilan akan diarahkan ke bengkel terdekat dari lokasi Anda.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ AUTH OVERLAY ============ -->
   <div id="authScreen" class="auth-screen hidden">
     <div class="auth-card">
@@ -382,8 +411,15 @@
         </div>
         <div class="field-group">
           <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" required placeholder="Password" />
+          <div class="pw-wrap">
+            <input type="password" id="loginPassword" required placeholder="Password" autocomplete="current-password" />
+            <button type="button" class="pw-toggle" data-target="loginPassword" aria-label="Tampilkan password">
+              <span class="eye-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="eye-off hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span>
+            </button>
+          </div>
         </div>
+        <div id="loginError" class="form-error hidden" role="alert"></div>
         <button type="submit" class="btn btn-primary">Masuk</button>
       </form>
 
@@ -403,7 +439,23 @@
         </div>
         <div class="field-group">
           <label for="regPassword">Password (min. 6 karakter) *</label>
-          <input type="password" id="regPassword" required minlength="6" placeholder="Password" />
+          <div class="pw-wrap">
+            <input type="password" id="regPassword" required minlength="6" placeholder="Password" autocomplete="new-password" />
+            <button type="button" class="pw-toggle" data-target="regPassword" aria-label="Tampilkan password">
+              <span class="eye-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="eye-off hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span>
+            </button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="regPassword2">Konfirmasi Password *</label>
+          <div class="pw-wrap">
+            <input type="password" id="regPassword2" required minlength="6" placeholder="Ulangi password" autocomplete="new-password" />
+            <button type="button" class="pw-toggle" data-target="regPassword2" aria-label="Tampilkan password">
+              <span class="eye-open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              <span class="eye-off hidden"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></span>
+            </button>
+          </div>
         </div>
         <div class="field-group">
           <label for="regWa">Nomor WhatsApp Penerima Pesanan *</label>

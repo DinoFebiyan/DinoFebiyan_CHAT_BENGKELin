@@ -72,7 +72,8 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => res.json({ ok: true }));
+  req.session = {};
+  res.json({ ok: true });
 });
 
 router.get('/me', async (req, res) => {

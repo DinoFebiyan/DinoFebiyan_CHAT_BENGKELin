@@ -4,6 +4,23 @@ const { KATEGORI, isServiceKategori, requireRole } = require('../helpers');
 
 const router = express.Router();
 
+// Bengkel mitra terlama (paling terpercaya) untuk tombol Panggil Darurat
+router.get('/emergency-bengkel', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT b.nama_bengkel, b.nomor_wa, b.alamat, b.created_at
+       FROM bengkel b
+       WHERE b.status = 'active'
+       ORDER BY b.created_at ASC, b.id ASC
+       LIMIT 1`
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Belum ada mitra bengkel aktif.' });
+    res.json({ bengkel: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memuat bengkel darurat.' });
+  }
+});
+
 // Katalog publik (tanpa login) â€” hanya bengkel berstatus active
 router.get('/items', async (req, res) => {
   try {
