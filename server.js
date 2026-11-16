@@ -6,10 +6,22 @@ const path = require('path');
 const authRoutes = require('./src/routes/auth');
 const itemRoutes = require('./src/routes/items');
 const adminRoutes = require('./src/routes/admin');
+const db = require('./src/db');
 
 const app = express();
 
 app.use(express.json({ limit: '6mb' }));
+
+// Diagnostik: cek status database & env yang terdeteksi
+app.get('/api/health', async (req, res) => {
+  const envSet = ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRESQL_URL'].filter((k) => !!process.env[k]);
+  try {
+    await db.query('SELECT 1');
+    res.json({ ok: true, database: 'connected', env: envSet });
+  } catch (err) {
+    res.status(500).json({ ok: false, database: 'error', env: envSet, error: err.message });
+  }
+});
 
 // ============ SESI STATELESS (cookie bertanda tangan HMAC) ============
 // Kompatibel serverless (Vercel): tidak menyimpan state di memori proses.

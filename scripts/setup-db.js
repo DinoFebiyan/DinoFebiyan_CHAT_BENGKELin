@@ -38,7 +38,7 @@ async function main() {
   );
 
   console.log('[SELESAI]');
-  await db.pool.end();
+  await db.getPool().end();
 }
 
 async function seed() {
