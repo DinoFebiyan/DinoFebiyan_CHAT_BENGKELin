@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS layanan (
   stok INT NOT NULL DEFAULT 0,
   deskripsi TEXT NOT NULL,
   image_url LONGTEXT NULL,
-  unggulan TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (bengkel_id) REFERENCES bengkel(id) ON DELETE CASCADE,
   INDEX idx_layanan_kategori (kategori),

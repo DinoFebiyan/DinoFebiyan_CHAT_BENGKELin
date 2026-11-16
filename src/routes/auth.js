@@ -101,15 +101,21 @@ router.get('/me', async (req, res) => {
 // Bengkel update seluruh informasi bengkel (nama, alamat, WA, email, password)
 router.put('/bengkel-profile', requireRole('bengkel'), async (req, res) => {
   try {
-    const { nama_bengkel, nomor_wa, alamat, email, password } = req.body || {};
+    const { nama, nama_bengkel, nomor_wa, alamat, email, password } = req.body || {};
+    const userId = req.session.user.id;
+
+    // Ganti nama pemilik bengkel (opsional)
+    if (nama !== undefined) {
+      if (!nama.trim()) return res.status(400).json({ error: 'Nama pemilik wajib diisi.' });
+      await db.query('UPDATE users SET nama = ? WHERE id = ?', [nama.trim(), userId]);
+      req.session.user.nama = nama.trim();
+    }
 
     const wa = normalizeWa(nomor_wa);
     if (!nama_bengkel || !nama_bengkel.trim()) {
       return res.status(400).json({ error: 'Nama bengkel wajib diisi.' });
     }
     if (!waValid(wa)) return res.status(400).json({ error: 'Nomor WhatsApp tidak valid (contoh: 6281234567890).' });
-
-    const userId = req.session.user.id;
 
     // Ganti email (opsional) — wajib valid & unik
     if (email !== undefined) {
@@ -136,7 +142,7 @@ router.put('/bengkel-profile', requireRole('bengkel'), async (req, res) => {
 
     if (email !== undefined) req.session.user.email = email.toLowerCase();
 
-    res.json({ ok: true, nomor_wa: wa, email: req.session.user.email, password_changed: Boolean(password) });
+    res.json({ ok: true, nomor_wa: wa, email: req.session.user.email, nama: req.session.user.nama, password_changed: Boolean(password) });
   } catch (err) {
     res.status(500).json({ error: 'Gagal menyimpan informasi bengkel.' });
   }

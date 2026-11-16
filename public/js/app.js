@@ -4,7 +4,6 @@ function escapeHTML(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
 
@@ -27,6 +26,17 @@ function isService(kategori) {
   return SERVICE_CATS.includes(kategori);
 }
 
+/* Gambar default per kategori (file lokal, tanpa emoji/SVG) */
+const CATEGORY_IMAGES = {
+  'Jasa Bengkel': '/image/TeknisiPerbaikan.jpg',
+  'Bahan Bakar': '/image/bensin.jpg',
+  'Kunci Serep': '/image/kunci.jpg',
+  'Suku Cadang & Oli': '/image/OliShell.jpg',
+};
+function itemImage(item) {
+  return item.image_url || CATEGORY_IMAGES[item.kategori] || CATEGORY_IMAGES['Jasa Bengkel'];
+}
+
 function availabilityLabel(item) {
   if (isService(item.kategori)) return item.stok > 0 ? 'Tersedia' : 'Tidak Tersedia';
   return item.stok > 0 ? `Stok ${item.stok}` : 'Habis';
@@ -42,37 +52,6 @@ async function api(path, opts = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan.');
   return data;
-}
-
-function getCategorySVG(kategori) {
-  const map = {
-    'Jasa Bengkel': `
-      <svg width="76" height="76" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="32" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
-        <path d="M49 27a10 10 0 0 0-13 13L22 54a3.5 3.5 0 0 0 5 5l14-14a10 10 0 0 0 13-13l-6 6-4-4 5-7z" fill="#e11d2a" stroke="#991b1b" stroke-width="1.8" stroke-linejoin="round"/>
-      </svg>`,
-    'Bahan Bakar': `
-      <svg width="76" height="76" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="32" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
-        <rect x="25" y="24" width="22" height="32" rx="4" fill="#e11d2a"/>
-        <rect x="29" y="29" width="14" height="9" rx="2" fill="#ffffff"/>
-        <path d="M47 32h4a4 4 0 0 1 4 4v12a3 3 0 0 0 6 0V31l-5-5" stroke="#1f242d" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>`,
-    'Kunci Serep': `
-      <svg width="76" height="76" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="32" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
-        <circle cx="30" cy="40" r="8" fill="#1f242d" stroke="#111827" stroke-width="2"/>
-        <circle cx="28" cy="40" r="2.5" fill="#ffffff"/>
-        <path d="M38 40h22M50 40v7M57 40v8" stroke="#e11d2a" stroke-width="3" stroke-linecap="round"/>
-      </svg>`,
-    'Suku Cadang & Oli': `
-      <svg width="76" height="76" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="40" cy="40" r="32" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
-        <path d="M40 22c-9 12-14 19-14 26a14 14 0 0 0 28 0c0-7-5-14-14-26z" fill="#1f242d"/>
-        <path d="M35 48a5 5 0 0 0 5 5" stroke="#e11d2a" stroke-width="2.5" stroke-linecap="round"/>
-      </svg>`
-  };
-  return map[kategori] || map['Jasa Bengkel'];
 }
 
 function compressImage(file) {
@@ -115,47 +94,43 @@ const views = {
 
 const $ = (id) => document.getElementById(id);
 
-/* ============ NAV & VIEWS ============ */
 function currentRole() {
   return state.user ? state.user.role : 'guest';
 }
 
+/* ============ NAVBAR ============ */
+const BRAND_SVG = `<div class="brand-icon" aria-hidden="true">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+  </svg>
+</div>`;
+
 function renderNav() {
-  const role = currentRole();
-  const pills = [];
-
-  pills.push({ id: 'catalog', label: 'Katalog' });
-  if (role === 'bengkel') pills.push({ id: 'bengkel', label: 'Dashboard Mitra' });
-  if (role === 'admin') pills.push({ id: 'admin', label: 'Panel Admin' });
-
-  const nav = $('navPills');
-  nav.innerHTML = pills
-    .map(
-      (p) =>
-        `<button type="button" class="nav-btn ${state.currentView === p.id ? 'active' : ''}" data-view="${p.id}">${p.label}</button>`
-    )
-    .join('');
-  nav.querySelectorAll('.nav-btn').forEach((btn) => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
-  });
-
-  const chip = $('userChip');
+  const navRight = $('navRight');
   if (state.user) {
-    chip.innerHTML = `
-      <span class="uc-name">${escapeHTML(state.user.nama.split(' ')[0])}</span>
-      <span class="uc-role">${escapeHTML(state.user.role)}</span>
-      <button type="button" id="btnLogout">Keluar</button>`;
+    navRight.innerHTML = `
+      <div class="nav-user">
+        <span class="nav-user-name" title="${escapeHTML(state.user.nama)}">${escapeHTML(state.user.nama)}</span>
+        <span class="uc-role">${escapeHTML(state.user.role)}</span>
+      </div>
+      <button type="button" class="btn-logout" id="btnLogout">Keluar</button>`;
     $('btnLogout').addEventListener('click', doLogout);
   } else {
-    chip.innerHTML = `<button type="button" id="btnGoLogin">Masuk / Daftar</button>`;
-    $('btnGoLogin').addEventListener('click', () => showAuth());
+    navRight.innerHTML = `<button type="button" class="btn-nav" id="btnGoLogin">Masuk / Daftar Mitra</button>`;
+    $('btnGoLogin').addEventListener('click', () => showAuth('login'));
   }
 }
 
 function switchView(view) {
   state.currentView = view;
   Object.entries(views).forEach(([key, id]) => {
-    $(id).classList.toggle('hidden', key !== view);
+    const el = $(id);
+    el.classList.toggle('hidden', key !== view);
+    if (key === view) {
+      el.classList.remove('view-anim');
+      void el.offsetWidth; /* restart animasi */
+      el.classList.add('view-anim');
+    }
   });
   if (view === 'catalog') loadCatalog();
   if (view === 'bengkel') loadBengkelDashboard();
@@ -164,26 +139,23 @@ function switchView(view) {
   window.scrollTo(0, 0);
 }
 
-/* ============ AUTH ============ */
-function showAuth() {
+/* ============ AUTH OVERLAY ============ */
+function showAuth(tab) {
   $('authScreen').classList.remove('hidden');
+  if (tab === 'register') {
+    $('tabRegister').click();
+  } else {
+    $('tabLogin').click();
+  }
 }
 
 function hideAuth() {
   $('authScreen').classList.add('hidden');
 }
 
-function showApp() {
-  hideAuth();
-  $('appScreen').classList.remove('hidden');
-  const start = currentRole() === 'admin' ? 'admin' : currentRole() === 'bengkel' ? 'bengkel' : 'catalog';
-  switchView(start);
-}
-
 async function doLogout() {
   try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
   state.user = null;
-  state.currentView = 'catalog';
   switchView('catalog');
   showToast('Anda telah keluar.');
 }
@@ -200,6 +172,12 @@ $('tabRegister').addEventListener('click', () => {
   $('tabLogin').classList.remove('active');
   $('registerForm').classList.remove('hidden');
   $('loginForm').classList.add('hidden');
+});
+
+$('authClose').addEventListener('click', hideAuth);
+
+$('authScreen').addEventListener('click', (e) => {
+  if (e.target === $('authScreen')) hideAuth();
 });
 
 $('loginForm').addEventListener('submit', async (e) => {
@@ -239,7 +217,13 @@ $('registerForm').addEventListener('submit', async (e) => {
   }
 });
 
-/* ============ KATALOG (PENGUNA / PUBLIK) ============ */
+function showApp() {
+  hideAuth();
+  const start = currentRole() === 'admin' ? 'admin' : currentRole() === 'bengkel' ? 'bengkel' : 'catalog';
+  switchView(start);
+}
+
+/* ============ KATALOG (PUBLIK) ============ */
 async function loadCatalog() {
   try {
     const q = $('searchInput').value.trim();
@@ -248,7 +232,7 @@ async function loadCatalog() {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (kategori && kategori !== 'ALL') params.set('kategori', kategori);
-    if (sort) params.set('sort', sort);
+    if (sort && sort !== 'default') params.set('sort', sort);
 
     const data = await api('/api/items?' + params.toString());
     state.catalog = data.items;
@@ -260,6 +244,7 @@ async function loadCatalog() {
         '<option value="ALL">Semua kategori</option>' +
         data.kategori.map((k) => `<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
       sel.value = current && [...sel.options].some((o) => o.value === current) ? current : 'ALL';
+      renderFooterKategori();
     }
     renderCatalog();
   } catch (err) {
@@ -267,6 +252,47 @@ async function loadCatalog() {
   }
 }
 
+function renderCatalog() {
+  const grid = $('catalogGrid');
+  if (!state.catalog.length) {
+    grid.innerHTML = `<div class="empty-catalog">Layanan atau produk tidak ditemukan. Coba kata kunci lain.</div>`;
+    return;
+  }
+
+  grid.innerHTML = state.catalog
+    .map((item, idx) => {
+      return `
+        <article class="product-card" data-id="${item.id}" tabindex="0" style="animation-delay:${Math.min(idx * 45, 360)}ms" aria-label="Lihat detail ${escapeHTML(item.nama)}">
+          <div class="card-media">
+            <img src="${escapeHTML(itemImage(item))}" alt="${escapeHTML(item.nama)}" loading="lazy" />
+          </div>
+          <div class="card-content">
+            <span class="badge-cat">${escapeHTML(item.kategori)}</span>
+            <h3 class="card-title">${escapeHTML(item.nama)}</h3>
+            <div class="card-price-label">Harga</div>
+            <div class="card-price">${formatRupiah(item.harga)}</div>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+
+  grid.querySelectorAll('.product-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const item = state.catalog.find((i) => String(i.id) === card.dataset.id);
+      if (item) openItemModal(item);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const item = state.catalog.find((i) => String(i.id) === card.dataset.id);
+        if (item) openItemModal(item);
+      }
+    });
+  });
+}
+
+/* ============ MODAL DETAIL LAYANAN ============ */
 function buildWhatsAppUrl(item) {
   const riderName = $('riderName').value.trim() || 'Pengendara';
   const riderLocation = $('riderLocation').value.trim() || 'Belum diisi (akan kirim shareloc)';
@@ -290,66 +316,57 @@ function buildWhatsAppUrl(item) {
 }
 
 function sosPhone() {
-  const first = state.catalog.find((i) => i.unggulan) || state.catalog[0];
+  const first = state.catalog[0];
   return first ? first.nomor_wa : '';
 }
 
-function renderCatalog() {
-  const grid = $('catalogGrid');
-  if (!state.catalog.length) {
-    grid.innerHTML = `<div class="panel-box" style="grid-column:1/-1; text-align:center; color:var(--text-muted);">Layanan atau produk tidak ditemukan. Coba kata kunci lain.</div>`;
-    return;
-  }
+function openItemModal(item) {
+  $('modalImage').src = itemImage(item);
+  $('modalImage').alt = item.nama;
+  $('modalCat').textContent = item.kategori;
+  $('modalName').textContent = item.nama;
+  $('modalDesc').textContent = item.deskripsi;
+  $('modalPrice').textContent = formatRupiah(item.harga);
 
-  grid.innerHTML = state.catalog
-    .map((item) => {
-      const isOut = item.stok <= 0;
-      const media = item.image_url
-        ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.nama)}" />`
-        : getCategorySVG(item.kategori);
+  const stockEl = $('modalStock');
+  const isOut = item.stok <= 0;
+  stockEl.textContent = availabilityLabel(item);
+  stockEl.classList.toggle('empty', isOut);
 
-      return `
-        <article class="product-card">
-          <div class="card-media">
-            ${media}
-            ${item.unggulan ? '<span class="badge-featured">Unggulan !</span>' : ''}
-          </div>
-          <div class="card-content">
-            <span class="badge-cat">${escapeHTML(item.kategori)}</span>
-            <h3 class="card-title">${escapeHTML(item.nama)}</h3>
-            <p class="card-desc">${escapeHTML(item.deskripsi)}</p>
-            <div class="card-shop">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-              ${escapeHTML(item.nama_bengkel)}
-            </div>
-            <div class="card-price-row">
-              <span class="card-price">${formatRupiah(item.harga)}</span>
-              <span class="stock-pill ${isOut ? 'empty' : ''}">
-                ${availabilityLabel(item)}
-              </span>
-            </div>
-            <button
-              type="button"
-              class="btn btn-wa"
-              ${isOut ? 'disabled' : ''}
-              data-order="${item.id}"
-            >
-              ${isOut ? 'Slot / Stok Habis' : 'Pesan via WhatsApp'}
-            </button>
-          </div>
-        </article>
-      `;
-    })
-    .join('');
+  $('modalShop').textContent = item.nama_bengkel;
+  $('modalAddress').textContent = item.alamat || '';
 
-  grid.querySelectorAll('[data-order]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const item = state.catalog.find((i) => String(i.id) === btn.dataset.order);
-      if (!item || item.stok <= 0) return;
-      window.open(buildWhatsAppUrl(item), '_blank', 'noopener,noreferrer');
-    });
-  });
+  const orderBtn = $('modalOrderBtn');
+  orderBtn.disabled = isOut;
+  orderBtn.textContent = isOut ? (isService(item.kategori) ? 'Jasa Tidak Tersedia' : 'Stok Habis') : 'Pesan via WhatsApp';
+  $('modalHint').classList.toggle('hidden', isOut);
+
+  orderBtn.onclick = () => {
+    if (item.stok <= 0) return;
+    window.open(buildWhatsAppUrl(item), '_blank', 'noopener,noreferrer');
+  };
+
+  $('itemModal').classList.remove('hidden');
+  $('itemModal').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
 }
+
+function closeItemModal() {
+  $('itemModal').classList.add('hidden');
+  $('itemModal').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+$('modalClose').addEventListener('click', closeItemModal);
+$('itemModal').addEventListener('click', (e) => {
+  if (e.target === $('itemModal')) closeItemModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!$('itemModal').classList.contains('hidden')) closeItemModal();
+    if (!$('authScreen').classList.contains('hidden')) hideAuth();
+  }
+});
 
 $('searchInput').addEventListener('input', loadCatalog);
 $('categoryFilter').addEventListener('change', loadCatalog);
@@ -359,6 +376,41 @@ $('btnQuickSOS').addEventListener('click', () => {
   const url = buildWhatsAppUrl(null);
   if (!url) return showToast('Belum ada mitra bengkel aktif.', true);
   window.open(url, '_blank', 'noopener,noreferrer');
+});
+
+/* Footer: daftar kategori & tautan mitra */
+function renderFooterKategori() {
+  const ul = $('footerKategori');
+  ul.innerHTML = state.kategori
+    .map((k) => `<li><a href="#" data-kat="${escapeHTML(k)}">${escapeHTML(k)}</a></li>`)
+    .join('');
+  ul.querySelectorAll('[data-kat]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.user) return showToast('Keluar akun dulu untuk melihat katalog publik.');
+      switchView('catalog');
+      $('categoryFilter').value = a.dataset.kat;
+      loadCatalog();
+      window.scrollTo(0, 0);
+    })
+  );
+}
+
+$('footerJadiMitra').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (state.user) return showToast('Anda sudah masuk sebagai ' + state.user.role + '.');
+  showAuth('register');
+});
+
+$('footerMasuk').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (state.user) return showToast('Anda sudah masuk sebagai ' + state.user.role + '.');
+  showAuth('login');
+});
+
+$('footerLogo').addEventListener('click', (e) => {
+  e.preventDefault();
+  $('brandHome').click();
 });
 
 /* ============ DASHBOARD BENGKEL ============ */
@@ -373,6 +425,7 @@ async function loadBengkelDashboard() {
     if (meData.user) {
       state.user = { ...state.user, ...meData.user };
       renderBengkelBanner(meData.user.status);
+      $('pfNamaAkun').value = meData.user.nama || '';
       $('pfNamaBengkel').value = meData.user.namaBengkel || '';
       $('pfAlamat').value = meData.user.alamat || '';
       $('pfWa').value = meData.user.nomorWa || '';
@@ -406,30 +459,28 @@ function renderBengkelBanner(status) {
 
 function renderBengkelStats() {
   const items = state.myItems;
+  const totalReady = items.filter((i) => i.stok > 0).length;
   const totalStock = items.reduce((acc, i) => acc + Number(i.stok || 0), 0);
   const totalCats = new Set(items.map((i) => i.kategori)).size;
-  const totalFeatured = items.filter((i) => i.unggulan).length;
 
   $('bengkelStatsGrid').innerHTML = `
     <div class="stat-card"><span>Total Layanan / Produk</span><strong>${items.length}</strong></div>
-    <div class="stat-card"><span>Total Stok & Slot Siaga</span><strong>${totalStock}</strong></div>
+    <div class="stat-card"><span>Layanan Siap / Tersedia</span><strong>${totalReady}</strong></div>
+    <div class="stat-card"><span>Total Stok Produk</span><strong>${totalStock}</strong></div>
     <div class="stat-card"><span>Kategori Aktif</span><strong>${totalCats}</strong></div>
-    <div class="stat-card"><span>Layanan Unggulan</span><strong>${totalFeatured}</strong></div>
   `;
 }
 
 function renderBengkelTable() {
   const tbody = $('bengkelTableBody');
   if (!state.myItems.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Belum ada layanan. Tambahkan layanan pertama Anda.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Belum ada layanan. Tambahkan layanan pertama Anda.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = state.myItems
     .map((item) => {
-      const thumb = item.image_url
-        ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.nama)}" />`
-        : `<span style="font-size:0.75rem; font-weight:700; color:var(--primary);">SVG</span>`;
+      const thumb = `<img src="${escapeHTML(itemImage(item))}" alt="${escapeHTML(item.nama)}" />`;
       return `
         <tr>
           <td>
@@ -440,8 +491,7 @@ function renderBengkelTable() {
           </td>
           <td>${escapeHTML(item.kategori)}</td>
           <td>${formatRupiah(item.harga)}</td>
-          <td><span class="stock-pill ${item.stok <= 0 ? 'empty' : ''}">${availabilityLabel(item)}</span></td>
-          <td>${item.unggulan ? 'Ya' : 'Tidak'}</td>
+          <td><span class="status-pill ${item.stok > 0 ? 'active' : 'rejected'}">${availabilityLabel(item)}</span></td>
           <td>
             <div class="action-btns">
               <button type="button" class="btn btn-outline btn-sm" data-edit="${item.id}">Edit</button>
@@ -461,13 +511,14 @@ function renderBengkelTable() {
   );
 }
 
-// Simpan Informasi Bengkel (nama, alamat, WA, email, password opsional)
+/* Simpan Informasi Bengkel (nama pemilik, nama bengkel, alamat, WA, email, password opsional) */
 $('profileForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const data = await api('/api/auth/bengkel-profile', {
       method: 'PUT',
       body: {
+        nama: $('pfNamaAkun').value.trim(),
         nama_bengkel: $('pfNamaBengkel').value.trim(),
         alamat: $('pfAlamat').value.trim(),
         nomor_wa: $('pfWa').value,
@@ -480,10 +531,12 @@ $('profileForm').addEventListener('submit', async (e) => {
     $('pfPassword').value = '';
     state.user = {
       ...state.user,
+      nama: data.nama,
       nomorWa: data.nomor_wa,
       email: data.email,
       namaBengkel: $('pfNamaBengkel').value.trim(),
     };
+    renderNav();
     showToast(
       data.password_changed
         ? 'Informasi bengkel & password berhasil diperbarui.'
@@ -494,7 +547,7 @@ $('profileForm').addEventListener('submit', async (e) => {
   }
 });
 
-// Toggle field ketersediaan: kategori jasa -> checkbox Tersedia, produk -> input stok
+/* Toggle field ketersediaan: kategori jasa -> checkbox Tersedia, produk -> input stok */
 function toggleStokField() {
   const isSvc = isService($('itemCategory').value);
   $('fieldStok').classList.toggle('hidden', isSvc);
@@ -508,7 +561,7 @@ $('itemTersedia').addEventListener('change', () => {
   if (isService($('itemCategory').value)) $('itemStock').value = $('itemTersedia').checked ? '1' : '0';
 });
 
-// Upload gambar
+/* Upload gambar */
 $('itemImageFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -545,7 +598,7 @@ function fillKategoriSelect(selectEl) {
     .join('');
 }
 
-// Submit tambah/edit layanan
+/* Submit tambah/edit layanan */
 $('itemForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = $('itemId').value;
@@ -559,7 +612,6 @@ $('itemForm').addEventListener('submit', async (e) => {
     stok,
     deskripsi: $('itemDesc').value.trim(),
     image_url: uploadedImageDataUrl,
-    unggulan: $('itemFeatured').checked,
   };
 
   try {
@@ -584,7 +636,6 @@ function startEditItem(id) {
   $('itemCategory').value = item.kategori;
   $('itemPrice').value = item.harga;
   $('itemDesc').value = item.deskripsi;
-  $('itemFeatured').checked = Boolean(item.unggulan);
 
   if (isService(item.kategori)) {
     $('itemTersedia').checked = item.stok > 0;
@@ -736,13 +787,15 @@ $('btnCancelBengkel').addEventListener('click', () => {
   $('bengkelForm').reset();
 });
 
+/* Logo: pengguna masuk diarahkan ke dashboardnya, tamu ke katalog */
 $('brandHome').addEventListener('click', (e) => {
   e.preventDefault();
-  switchView('catalog');
+  const role = currentRole();
+  switchView(role === 'admin' ? 'admin' : role === 'bengkel' ? 'bengkel' : 'catalog');
 });
 
 /* ============ INIT ============ */
-/* Katalog publik langsung tampil tanpa login; login hanya untuk admin & mitra bengkel */
+/* Katalog publik langsung tampil tanpa login; form masuk/daftar hanya muncul saat diminta */
 (async function init() {
   try {
     const data = await api('/api/auth/me');

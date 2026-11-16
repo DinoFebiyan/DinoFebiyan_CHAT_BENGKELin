@@ -67,6 +67,33 @@ async function migrate(conn) {
   }
 
   await conn.query("DELETE FROM users WHERE role = 'pengguna'");
+
+  // Hapus konsep "unggulan"
+  const [unggulanCol] = await conn.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'layanan' AND COLUMN_NAME = 'unggulan'`,
+    [DB_NAME]
+  );
+  if (unggulanCol.length) {
+    await conn.query('ALTER TABLE layanan DROP COLUMN unggulan');
+    console.log('[OK] Migrasi: kolom unggulan dihapus.');
+  }
+
+  // Normalisasi kategori jasa: hanya mengenal tersedia (1) / tidak (0)
+  await conn.query(
+    "UPDATE layanan SET stok = 1 WHERE kategori IN ('Jasa Bengkel', 'Kunci Serep') AND stok > 0"
+  );
+
+  // Isi gambar default per kategori untuk item tanpa gambar
+  await conn.query(
+    `UPDATE layanan SET image_url = CASE kategori
+      WHEN 'Jasa Bengkel' THEN '/image/TeknisiPerbaikan.jpg'
+      WHEN 'Bahan Bakar' THEN '/image/bensin.jpg'
+      WHEN 'Kunci Serep' THEN '/image/kunci.jpg'
+      WHEN 'Suku Cadang & Oli' THEN '/image/OliShell.jpg'
+      ELSE image_url END
+     WHERE image_url IS NULL OR image_url = ''`
+  );
 }
 
 async function seed(conn) {
@@ -110,31 +137,31 @@ async function seed(conn) {
   const layanan = [
     // Bengkel Amanah Motor (id bengkel 1)
     [bengkelIds[0], 'Tambal Ban Tubeless Panggilan', 'Jasa Bengkel', 25000, 1,
-      'Penambalan sistem cacing/tip-top di lokasi mogok lengkap dengan isi angin standar.', 1],
+      'Penambalan sistem cacing/tip-top di lokasi mogok lengkap dengan isi angin standar.', '/image/TeknisiPerbaikan.jpg'],
     [bengkelIds[0], 'Ganti Oli Mesin Matic 0.8L + Jasa', 'Suku Cadang & Oli', 55000, 8,
-      'Oli SAE 10W-30/10W-40 API SL lengkap dengan pemasangan langsung di lokasi.', 1],
+      'Oli SAE 10W-30/10W-40 API SL lengkap dengan pemasangan langsung di lokasi.', '/image/OliShell.jpg'],
     [bengkelIds[0], 'Perbaikan Lampu & Kelistrikan', 'Jasa Bengkel', 35000, 1,
-      'Pengecekan sekring putus, soket kendor, atau penggantian bohlam utama kendaraan.', 0],
+      'Pengecekan sekring putus, soket kendor, atau penggantian bohlam utama kendaraan.', '/image/TeknisiPerbaikan.jpg'],
     [bengkelIds[0], 'Air Radiator Coolant Premix (1L)', 'Suku Cadang & Oli', 22000, 0,
-      'Cairan pendingin siap pakai untuk mengatasi indikator suhu mesin overheat.', 0],
+      'Cairan pendingin siap pakai untuk mengatasi indikator suhu mesin overheat.', '/image/OliYamalub.jpeg'],
     // Lapak BBM & Kunci Rapi (id bengkel 2)
     [bengkelIds[1], 'Bensin Pertalite Eceran Antar (2L)', 'Bahan Bakar', 24000, 10,
-      'Paket darurat kehabisan bensin 2 liter dengan jerigen bersih siap antar cepat.', 1],
+      'Paket darurat kehabisan bensin 2 liter dengan jerigen bersih siap antar cepat.', '/image/bensin.jpg'],
     [bengkelIds[1], 'Bensin Pertamax Eceran Antar (2L)', 'Bahan Bakar', 29000, 6,
-      'Bahan bakar RON 92 kemasan aman untuk motor atau mobil injeksi yang kehabisan BBM.', 0],
+      'Bahan bakar RON 92 kemasan aman untuk motor atau mobil injeksi yang kehabisan BBM.', '/image/bensin.jpg'],
     [bengkelIds[1], 'Duplikat Kunci Motor Darurat', 'Kunci Serep', 45000, 1,
-      'Pembuatan anak kunci cadangan presisi di tempat untuk kunci patah atau hilang.', 1],
+      'Pembuatan anak kunci cadangan presisi di tempat untuk kunci patah atau hilang.', '/image/kunci.jpg'],
     [bengkelIds[1], 'Jasa Buka Jok Motor Terkunci', 'Kunci Serep', 30000, 1,
-      'Penanganan kunci tertinggal di dalam bagasi jok tanpa merusak rumah kunci.', 0],
+      'Penanganan kunci tertinggal di dalam bagasi jok tanpa merusak rumah kunci.', '/image/kunci.jpg'],
     // Bengkel Sinar Jaya (id bengkel 3)
     [bengkelIds[2], 'Servis Motor Darurat Tidak Nyala', 'Jasa Bengkel', 60000, 1,
-      'Pemeriksaan aki, busi, dan sistem pengapian di lokasi mogok kendaraan.', 0],
+      'Pemeriksaan aki, busi, dan sistem pengapian di lokasi mogok kendaraan.', '/image/TeknisiPerbaikan.jpg'],
     [bengkelIds[2], 'Isi Angin & Cek Tekanan Ban Darurat', 'Jasa Bengkel', 15000, 1,
-      'Kompresor portable siap datang untuk isi angin ban kempes di jalan.', 0],
+      'Kompresor portable siap datang untuk isi angin ban kempes di jalan.', '/image/TeknisiPerbaikan.jpg'],
   ];
   for (const l of layanan) {
     await conn.query(
-      `INSERT INTO layanan (bengkel_id, nama, kategori, harga, stok, deskripsi, unggulan)
+      `INSERT INTO layanan (bengkel_id, nama, kategori, harga, stok, deskripsi, image_url)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       l
     );

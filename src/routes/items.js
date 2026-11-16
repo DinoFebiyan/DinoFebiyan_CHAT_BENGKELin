@@ -1,16 +1,16 @@
-const express = require('express');
+﻿const express = require('express');
 const db = require('../db');
 const { KATEGORI, isServiceKategori, requireRole } = require('../helpers');
 
 const router = express.Router();
 
-// Katalog publik (tanpa login) — hanya bengkel berstatus active
+// Katalog publik (tanpa login) â€” hanya bengkel berstatus active
 router.get('/items', async (req, res) => {
   try {
     const { q, kategori, sort } = req.query;
     let sql = `
       SELECT l.id, l.bengkel_id, l.nama, l.kategori, l.harga, l.stok, l.deskripsi,
-             l.image_url, l.unggulan, b.nama_bengkel, b.nomor_wa, b.alamat
+             l.image_url, b.nama_bengkel, b.nomor_wa, b.alamat
       FROM layanan l
       JOIN bengkel b ON b.id = l.bengkel_id
       WHERE b.status = 'active'`;
@@ -25,7 +25,7 @@ router.get('/items', async (req, res) => {
       sql += ' AND l.kategori = ?';
       params.push(kategori);
     }
-    sql += ' ORDER BY l.unggulan DESC, l.id DESC';
+    sql += ' ORDER BY l.id ASC';
 
     const [rows] = await db.query(sql, params);
 
@@ -47,7 +47,7 @@ router.get('/my-items', requireRole('bengkel'), async (req, res) => {
       `SELECT l.* FROM layanan l
        JOIN bengkel b ON b.id = l.bengkel_id
        WHERE b.user_id = ?
-       ORDER BY l.unggulan DESC, l.id DESC`,
+       ORDER BY l.id DESC`,
       [req.session.user.id]
     );
     res.json({ items: rows, kategori: KATEGORI });
@@ -56,10 +56,10 @@ router.get('/my-items', requireRole('bengkel'), async (req, res) => {
   }
 });
 
-// Tambah layanan — HANYA bengkel
+// Tambah layanan â€” HANYA bengkel
 router.post('/items', requireRole('bengkel'), async (req, res) => {
   try {
-    const { nama, kategori, harga, stok, deskripsi, image_url, unggulan } = req.body || {};
+    const { nama, kategori, harga, stok, deskripsi, image_url } = req.body || {};
     const err = validateItem({ nama, kategori, harga, stok, deskripsi });
     if (err) return res.status(400).json({ error: err });
 
@@ -68,8 +68,8 @@ router.post('/items', requireRole('bengkel'), async (req, res) => {
 
     const stokFinal = normalizeStok(kategori, stok);
     await db.query(
-      `INSERT INTO layanan (bengkel_id, nama, kategori, harga, stok, deskripsi, image_url, unggulan)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO layanan (bengkel_id, nama, kategori, harga, stok, deskripsi, image_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         b[0].id,
         nama.trim(),
@@ -78,7 +78,6 @@ router.post('/items', requireRole('bengkel'), async (req, res) => {
         stokFinal,
         deskripsi.trim(),
         image_url || null,
-        unggulan ? 1 : 0,
       ]
     );
     res.json({ ok: true });
@@ -87,10 +86,10 @@ router.post('/items', requireRole('bengkel'), async (req, res) => {
   }
 });
 
-// Update layanan — HANYA pemilik bengkel
+// Update layanan â€” HANYA pemilik bengkel
 router.put('/items/:id', requireRole('bengkel'), async (req, res) => {
   try {
-    const { nama, kategori, harga, stok, deskripsi, image_url, unggulan } = req.body || {};
+    const { nama, kategori, harga, stok, deskripsi, image_url } = req.body || {};
     const err = validateItem({ nama, kategori, harga, stok, deskripsi });
     if (err) return res.status(400).json({ error: err });
 
@@ -103,7 +102,7 @@ router.put('/items/:id', requireRole('bengkel'), async (req, res) => {
 
     const stokFinal = normalizeStok(kategori, stok);
     await db.query(
-      `UPDATE layanan SET nama=?, kategori=?, harga=?, stok=?, deskripsi=?, image_url=?, unggulan=?
+      `UPDATE layanan SET nama=?, kategori=?, harga=?, stok=?, deskripsi=?, image_url=?
        WHERE id = ?`,
       [
         nama.trim(),
@@ -112,7 +111,6 @@ router.put('/items/:id', requireRole('bengkel'), async (req, res) => {
         stokFinal,
         deskripsi.trim(),
         image_url || null,
-        unggulan ? 1 : 0,
         req.params.id,
       ]
     );
@@ -122,7 +120,7 @@ router.put('/items/:id', requireRole('bengkel'), async (req, res) => {
   }
 });
 
-// Hapus layanan — HANYA pemilik bengkel
+// Hapus layanan â€” HANYA pemilik bengkel
 router.delete('/items/:id', requireRole('bengkel'), async (req, res) => {
   try {
     const [own] = await db.query(
