@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BENGKELIN! — Layanan Darurat Kendaraan</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ============ AUTH SCREEN ============ -->
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-icon">B!</div>
+        <div class="brand-name">BENGKEL<span>IN!</span></div>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" id="tabLogin" class="active">Masuk</button>
+        <button type="button" id="tabRegister">Daftar Mitra Bengkel</button>
+      </div>
+
+      <!-- Form Login -->
+      <form id="loginForm" class="form-stack">
+        <div class="field-group">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" required placeholder="nama@email.com" />
+        </div>
+        <div class="field-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="Password" />
+        </div>
+        <button type="submit" class="btn btn-primary">Masuk</button>
+        <p style="font-size:0.76rem; color:var(--text-muted);">Katalog layanan dapat dilihat tanpa login. Masuk hanya untuk admin & mitra bengkel.</p>
+      </form>
+
+      <!-- Form Daftar Mitra Bengkel (menunggu persetujuan admin) -->
+      <form id="registerForm" class="form-stack hidden">
+        <div class="field-group">
+          <label for="regNamaAkun">Nama Pemilik Akun *</label>
+          <input type="text" id="regNamaAkun" required placeholder="Mis. Budi Santoso" />
+        </div>
+        <div class="field-group">
+          <label for="regNamaBengkel">Nama Bengkel / Lapak *</label>
+          <input type="text" id="regNamaBengkel" required placeholder="Mis. Bengkel Amanah Motor" />
+        </div>
+        <div class="field-group">
+          <label for="regEmail">Email Akun *</label>
+          <input type="email" id="regEmail" required placeholder="bengkel@email.com" />
+        </div>
+        <div class="field-group">
+          <label for="regPassword">Password (min. 6 karakter) *</label>
+          <input type="password" id="regPassword" required minlength="6" placeholder="Password" />
+        </div>
+        <div class="field-group">
+          <label for="regWa">Nomor WhatsApp Penerima Pesanan *</label>
+          <input type="tel" id="regWa" required placeholder="6281234567890" />
+        </div>
+        <div class="field-group">
+          <label for="regAlamat">Alamat / Basis Operasional</label>
+          <input type="text" id="regAlamat" placeholder="Mis. Jl. Ahmad Yani No. 12" />
+        </div>
+        <button type="submit" class="btn btn-primary">Daftar sebagai Mitra Bengkel</button>
+        <p style="font-size:0.76rem; color:var(--text-muted);">Pendaftaran Anda akan ditinjau dan disetujui oleh Admin BENGKELIN! sebelum tampil di katalog publik.</p>
+      </form>
+
+      <div class="demo-creds">
+        <strong>Akun Demo:</strong><br />
+        <span class="role-admin">Admin</span> &nbsp;admin@bengkelin.id / admin123<br />
+        <span class="role-admin">Bengkel</span> &nbsp;budi@bengkelin.id / bengkel123<br />
+        <span class="role-admin">Bengkel</span> &nbsp;siti@bengkelin.id / bengkel123<br />
+        <span class="role-admin">Bengkel (pending)</span> &nbsp;candra@bengkelin.id / bengkel123
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <div id="appScreen" class="hidden">
+    <header>
+      <div class="container nav-bar">
+        <a class="brand" id="brandHome">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+          </div>
+          <span class="brand-name">BENGKEL<span>IN!</span></span>
+        </a>
+
+        <div class="nav-right">
+          <nav class="nav-pills" id="navPills" aria-label="Navigasi Halaman"></nav>
+          <div class="user-chip" id="userChip"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- ============ VIEW: KATALOG (semua role) ============ -->
+      <section id="viewCatalog">
+        <div class="hero-section">
+          <div>
+            <div class="hero-eyebrow">Layanan Darurat Kendaraan • Mitra Bengkel Siaga</div>
+            <h1 class="hero-title">
+              Tambal ban, bensin, dan kunci serep <span class="highlight">siap meluncur</span> ke lokasi.
+            </h1>
+            <p class="hero-desc">
+              BENGKELIN! menghubungkan pengendara yang mengalami kendala di jalan dengan layanan bengkel panggilan, bensin eceran antar, serta duplikat kunci serep langsung via WhatsApp.
+            </p>
+            <div class="hero-actions">
+              <a href="#katalogArea" class="btn btn-primary">Lihat Katalog</a>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-hidden="true">
+            <span class="floating-pill pill-1">Mekanik Siaga</span>
+            <span class="floating-pill pill-2">Bensin Eceran Antar</span>
+            <span class="floating-pill pill-3">Kunci Serep Darurat</span>
+            <svg width="155" height="155" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="80" cy="80" r="56" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+              <circle cx="80" cy="80" r="42" fill="#fef2f2"/>
+              <path d="M96 54a16 16 0 0 0-21 21L52 98a6 6 0 0 0 8.5 8.5l23-23a16 16 0 0 0 21-21l-9 9-7-7 7.5-10.5z" fill="#e11d2a" stroke="#991b1b" stroke-width="2.2" stroke-linejoin="round"/>
+              <circle cx="112" cy="108" r="16" fill="#1f242d"/>
+              <path d="M112 100v16M104 108h16" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <div id="katalogArea" class="catalog-heading-block">
+          <h2>Pilih Layanan Darurat Kendaraan Anda</h2>
+          <p>Isi patokan lokasi lalu pilih layanan di bawah untuk langsung terhubung ke WhatsApp mitra</p>
+        </div>
+
+        <div class="rider-context-card">
+          <div class="field-group">
+            <label for="riderName">Nama Pemesan / Kendaraan</label>
+            <input type="text" id="riderName" placeholder="Mis. Raka - Vario 150 Hitam" />
+          </div>
+          <div class="field-group">
+            <label for="riderLocation">Patokan Lokasi Darurat / Mogok</label>
+            <input type="text" id="riderLocation" placeholder="Mis. Jl. Ahmad Yani depan SPBU..." />
+          </div>
+          <div>
+            <button type="button" id="btnQuickSOS" class="btn btn-sos">Panggil SOS Darurat</button>
+          </div>
+        </div>
+
+        <div class="filter-panel">
+          <input type="search" id="searchInput" placeholder="Cari layanan (mis. tambal ban, Pertalite, kunci motor, oli)..." aria-label="Cari layanan" />
+          <select id="categoryFilter" aria-label="Filter kategori">
+            <option value="ALL">Semua kategori</option>
+          </select>
+          <select id="sortSelect" aria-label="Urutkan katalog">
+            <option value="featured">Default (unggulan dulu)</option>
+            <option value="price-asc">Harga: Termurah</option>
+            <option value="price-desc">Harga: Termahal</option>
+            <option value="stock-desc">Stok / Slot Terbanyak</option>
+          </select>
+        </div>
+
+        <div id="catalogGrid" class="catalog-grid"></div>
+      </section>
+
+      <!-- ============ VIEW: DASHBOARD BENGKEL ============ -->
+      <section id="viewBengkel" class="hidden">
+        <div class="dashboard-header">
+          <div>
+            <h2>Dashboard Mitra BENGKELIN!</h2>
+            <p>Kelola nomor WhatsApp penerima pesanan, ketersediaan layanan jasa, stok produk, dan foto katalog.</p>
+          </div>
+        </div>
+
+        <div id="bengkelStatusBanner" class="status-banner hidden"></div>
+
+        <div class="stats-grid" id="bengkelStatsGrid"></div>
+
+        <div class="panel-box" style="margin-bottom:24px;">
+          <h3>Informasi Bengkel</h3>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin:-8px 0 14px;">
+            Data ini dimuat dari database. Semua tombol "Pesan via WhatsApp" dan "Panggil SOS" di katalog akan diarahkan ke nomor WhatsApp bengkel Anda (format awalan 62).
+          </p>
+          <form id="profileForm" class="form-stack">
+            <div class="field-group">
+              <label for="pfNamaBengkel">Nama Bengkel / Lapak *</label>
+              <input type="text" id="pfNamaBengkel" required placeholder="Mis. Bengkel Amanah Motor" />
+            </div>
+            <div class="field-group">
+              <label for="pfAlamat">Alamat / Basis Operasional</label>
+              <input type="text" id="pfAlamat" placeholder="Mis. Jl. Ahmad Yani No. 12" />
+            </div>
+            <div class="field-group">
+              <label for="pfWa">Nomor WhatsApp Penerima Pesanan *</label>
+              <input type="tel" id="pfWa" required placeholder="Contoh: 6281234567890" />
+            </div>
+            <div class="field-group">
+              <label for="pfEmail">Email Akun *</label>
+              <input type="email" id="pfEmail" required placeholder="bengkel@email.com" />
+            </div>
+            <div class="field-group">
+              <label for="pfPassword">Password Baru (Opsional)</label>
+              <input type="password" id="pfPassword" minlength="6" placeholder="Biarkan kosong jika tidak ingin diganti" />
+            </div>
+            <div>
+              <button type="submit" class="btn btn-primary">Simpan Informasi Bengkel</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="panel-box">
+            <h3 id="formHeading">Tambah Layanan / Produk</h3>
+            <form id="itemForm" class="form-stack">
+              <input type="hidden" id="itemId" />
+
+              <div class="field-group">
+                <label for="itemName">Nama Layanan / Produk *</label>
+                <input type="text" id="itemName" required placeholder="Mis. Tambal Ban Tubeless Panggilan" />
+              </div>
+
+              <div class="field-group">
+                <label for="itemCategory">Kategori *</label>
+                <select id="itemCategory" required></select>
+              </div>
+
+              <div class="field-group">
+                <label for="itemPrice">Harga (Rp) *</label>
+                <input type="number" id="itemPrice" min="0" step="500" required placeholder="25000" />
+              </div>
+
+              <div class="field-group" id="fieldStok">
+                <label for="itemStock">Stok / Slot Tersedia *</label>
+                <input type="number" id="itemStock" min="0" step="1" required placeholder="5" />
+              </div>
+
+              <div class="field-group hidden" id="fieldTersedia">
+                <label>Ketersediaan Jasa *</label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="itemTersedia" />
+                  <span>Jasa siap dipanggil (Tersedia)</span>
+                </label>
+              </div>
+
+              <div class="field-group">
+                <label>Upload Gambar (Opsional)</label>
+                <label class="upload-zone" for="itemImageFile">
+                  <div style="font-size:0.83rem; font-weight:700; color:var(--primary);">Pilih Gambar dari Perangkat</div>
+                  <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">JPG, PNG, WebP (otomatis dikompresi)</div>
+                  <input type="file" id="itemImageFile" accept="image/*" class="hidden" />
+                </label>
+                <div id="imagePreviewContainer" class="upload-preview-wrap hidden">
+                  <img id="imagePreview" src="" alt="Preview gambar layanan" />
+                  <button type="button" id="btnClearImage" class="btn btn-danger btn-sm" style="margin-top:6px; width:100%;">Hapus Gambar</button>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label for="itemDesc">Deskripsi Singkat *</label>
+                <textarea id="itemDesc" rows="3" required placeholder="Keterangan layanan, cakupan area, atau spesifikasi..."></textarea>
+              </div>
+
+              <label class="checkbox-label">
+                <input type="checkbox" id="itemFeatured" />
+                <span>Tampilkan sebagai Layanan Unggulan</span>
+              </label>
+
+              <div style="display:flex; gap:8px; margin-top:4px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Layanan</button>
+                <button type="button" id="btnCancelEdit" class="btn btn-outline hidden">Batal</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel-box">
+            <div class="table-header-bar">
+              <h3>Katalog Layanan & Produk Bengkel Anda</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Layanan / Produk</th>
+                    <th>Kategori</th>
+                    <th>Harga</th>
+                    <th>Stok/Slot</th>
+                    <th>Unggulan</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="bengkelTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ VIEW: PANEL ADMIN ============ -->
+      <section id="viewAdmin" class="hidden">
+        <div class="dashboard-header">
+          <div>
+            <h2>Panel Admin BENGKELIN!</h2>
+            <p>Kelola mitra bengkel dan pantau aktivitas platform.</p>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="adminStatsGrid"></div>
+
+        <div class="dashboard-grid">
+          <div class="panel-box">
+            <h3 id="bengkelFormHeading">Tambah Mitra Bengkel</h3>
+            <form id="bengkelForm" class="form-stack">
+              <input type="hidden" id="bengkelUserId" />
+
+              <div class="field-group">
+                <label for="bkNamaAkun">Nama Pemilik Akun *</label>
+                <input type="text" id="bkNamaAkun" required placeholder="Mis. Budi Santoso" />
+              </div>
+              <div class="field-group">
+                <label for="bkNamaBengkel">Nama Bengkel / Lapak *</label>
+                <input type="text" id="bkNamaBengkel" required placeholder="Mis. Bengkel Amanah Motor" />
+              </div>
+              <div class="field-group">
+                <label for="bkEmail">Email Akun *</label>
+                <input type="email" id="bkEmail" required placeholder="bengkel@email.com" />
+              </div>
+              <div class="field-group">
+                <label for="bkPassword">Password Akun (min. 6 karakter) *</label>
+                <input type="password" id="bkPassword" required minlength="6" placeholder="Password" />
+              </div>
+              <div class="field-group">
+                <label for="bkWa">Nomor WhatsApp Penerima Pesanan *</label>
+                <input type="tel" id="bkWa" required placeholder="6281234567890" />
+              </div>
+              <div class="field-group">
+                <label for="bkAlamat">Alamat / Basis Operasional</label>
+                <input type="text" id="bkAlamat" placeholder="Mis. Jl. Ahmad Yani No. 12" />
+              </div>
+
+              <div style="display:flex; gap:8px; margin-top:4px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Simpan Bengkel</button>
+                <button type="button" id="btnCancelBengkel" class="btn btn-outline hidden">Batal</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel-box">
+            <div class="table-header-bar">
+              <h3>Daftar Mitra Bengkel</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Bengkel</th>
+                    <th>Akun</th>
+                    <th>No. WA</th>
+                    <th>Katalog</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
