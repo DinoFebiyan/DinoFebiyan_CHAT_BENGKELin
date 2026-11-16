@@ -1,63 +1,51 @@
 # Panduan Deploy BENGKELIN! ke Vercel
 
-Aplikasi butuh database MySQL. Vercel tidak menyediakan MySQL, jadi gunakan
-layanan MySQL cloud gratisan seperti **Aiven Free**, **TiDB Cloud**, atau
-**Railway**. Di bawah ini langkah lengkapnya.
+Aplikasi memakai **Postgres (Neon)** yang bisa dibuat langsung dari dashboard
+Vercel — tanpa akun layanan pihak ketiga tambahan.
 
-## 1. Siapkan Database MySQL Cloud
+## 1. Buat Database Postgres dari Vercel
 
-1. Buat akun di salah satu layanan di atas lalu buat database MySQL baru.
-2. Catat kredensialnya: host, port, user, password, nama database.
-3. Pastikan koneksi mengizinkan akses publik (biasanya default).
+1. Bukalah project Anda di https://vercel.com lalu masuk tab **Storage**.
+2. Klik **Create Database** -> pilih **Neon Postgres** (tier free) -> beri nama
+   (mis. `bengkelin-db`) -> pilih region terdekat (Singapore) -> **Create**.
+3. Saat diminta, hubungkan database ke project BENGKELIN. Vercel otomatis
+   menambahkan environment variable `POSTGRES_URL` ke project.
+4. Buka tab database -> **Get Connection String** -> salin URL-nya (diakhiri
+   `?sslmode=require`).
 
 ## 2. Isi Database dengan Schema + Data Dummy
 
-Dari komputer lokal, jalankan setup mengarah ke database remote:
+Dari komputer lokal, tempel URL database ke `.env`:
 
 ```
-set DB_HOST=<host-remote>
-set DB_PORT=<port>
-set DB_USER=<user>
-set DB_PASSWORD=<password>
-set DB_NAME=<nama-db>
-set DB_SSL=1
+DATABASE_URL=postgres://...?sslmode=require
+```
+
+Lalu jalankan:
+
+```
+npm install
 node scripts/setup-db.js
 ```
 
 Perintah ini membuat tabel `users`, `bengkel`, `layanan` beserta akun admin,
 mitra dummy, dan 20 katalog contoh.
 
-## 3. Push ke GitHub
+## 3. Deploy
+
+Setelah database terhubung ke project (langkah 1), cukup **push ke GitHub** —
+Vercel melakukan redeploy otomatis:
 
 ```
 git add -A
-git commit -m "versi 3-siap-deploy"
+git commit -m "migrasi postgres"
 git push bengkelin main
 ```
 
-(remote `bengkelin` mengarah ke https://github.com/DinoFebiyan/DinoFebiyan_CHAT_BENGKELin.git)
+Tambahkan juga di Project Settings -> Environment Variables (jika belum
+terisi otomatis): `SESSION_SECRET` (string acak panjang, bebas).
 
-## 4. Import ke Vercel
-
-1. Buka https://vercel.com/new lalu pilih repository
-   `DinoFebiyan/DinoFebiyan_CHAT_BENGKELin`.
-2. Framework Preset: **Other** (tidak perlu build command).
-3. Tambahkan Environment Variables:
-
-   | Nama            | Nilai                                  |
-   |-----------------|----------------------------------------|
-   | DB_HOST         | host database remote                   |
-   | DB_PORT         | port (biasanya 3306)                   |
-   | DB_USER         | user database                          |
-   | DB_PASSWORD     | password database                      |
-   | DB_NAME         | nama database                          |
-   | DB_SSL          | 1                                      |
-   | DB_POOL         | 5                                      |
-   | SESSION_SECRET  | string acak panjang (bebas)            |
-
-4. Klik **Deploy**. Setelah selesai, aplikasi aktif di URL Vercel Anda.
-
-## 5. Verifikasi
+## 4. Verifikasi
 
 - Buka URL Vercel -> katalog tampil (21 item).
 - Login admin `admin@bengkelin.id` / `admin123`.
@@ -65,6 +53,8 @@ git push bengkelin main
 
 ## Catatan Teknis
 
+- Database memakai Postgres (Neon). Lapisan query diberi adaptor sehingga kode
+  tetap memakai gaya `db.query(sql, params)` dengan placeholder `?`.
 - Sesi login memakai **cookie bertanda tangan HMAC** (stateless) sehingga aman
   untuk arsitektur serverless Vercel.
 - Endpoint API diarahkan ke fungsi serverless `api/index.js` melalui

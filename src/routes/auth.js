@@ -25,11 +25,11 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     const [u] = await db.query(
-      "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, 'bengkel')",
+        "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, 'bengkel') RETURNING id",
       [nama_akun.trim(), email.toLowerCase(), hash]
     );
     await db.query(
-      "INSERT INTO bengkel (user_id, nama_bengkel, nomor_wa, alamat, status) VALUES (?, ?, ?, ?, 'pending')",
+        "INSERT INTO bengkel (user_id, nama_bengkel, nomor_wa, alamat, status) VALUES (?, ?, ?, ?, 'pending') RETURNING id",
       [u.insertId, nama_bengkel.trim(), wa, String(alamat || '').trim()]
     );
     res.json({ ok: true, message: 'Pendaftaran berhasil! Silakan tunggu persetujuan admin.' });

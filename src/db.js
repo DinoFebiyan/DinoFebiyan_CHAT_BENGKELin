@@ -1,17 +1,38 @@
-const mysql = require('mysql2/promise');
+// Koneksi Postgres (Neon / Vercel Postgres) dengan antarmuka ala mysql2:
+//   const [rows] = await db.query(sql, params)
+// Placeholder MySQL `?` dikonversi otomatis ke `$1, $2, ...`
+const { Pool } = require('pg');
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'bengkelin',
-  waitForConnections: true,
-  connectionLimit: Number(process.env.DB_POOL || 5),
-  charset: 'utf8mb4_unicode_ci',
-  // Aktifkan SSL untuk database remote (mis. Aiven, PlanetScale, TiDB, Railway):
-  // set DB_SSL=1 di environment
-  ...(process.env.DB_SSL === '1' ? { ssl: { rejectUnauthorized: true } } : {}),
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRESQL_URL ||
+  '';
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL belum diisi. Gunakan URL Postgres (Neon) dari Vercel.');
+}
+
+const needsSsl = /sslmode=require/.test(connectionString) || /neon\.tech/.test(connectionString);
+
+const pool = new Pool({
+  connectionString,
+  max: Number(process.env.DB_POOL || 5),
+  ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 
-module.exports = pool;
+function toPgSql(sql) {
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
+
+async function query(sql, params = []) {
+  const res = await pool.query(toPgSql(sql), params);
+  const rows = res.rows || [];
+  // Kompatibilitas dengan kode bergaya mysql2:
+  rows.insertId = rows.length && rows[0].id !== undefined ? rows[0].id : 0;
+  rows.affectedRows = res.rowCount || 0;
+  return [rows];
+}
+
+module.exports = { query, pool };

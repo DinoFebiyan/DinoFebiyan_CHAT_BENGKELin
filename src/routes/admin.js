@@ -40,11 +40,11 @@ router.post('/bengkel', requireRole('admin'), async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     const [u] = await db.query(
-      "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, 'bengkel')",
+        "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, 'bengkel') RETURNING id",
       [nama_akun.trim(), email.toLowerCase(), hash]
     );
     await db.query(
-      "INSERT INTO bengkel (user_id, nama_bengkel, nomor_wa, alamat, status) VALUES (?, ?, ?, ?, 'active')",
+        "INSERT INTO bengkel (user_id, nama_bengkel, nomor_wa, alamat, status) VALUES (?, ?, ?, ?, 'active') RETURNING id",
       [u.insertId, nama_bengkel.trim(), wa, String(alamat || '').trim()]
     );
     res.json({ ok: true });
@@ -73,7 +73,7 @@ router.delete('/bengkel/:id', requireRole('admin'), async (req, res) => {
   try {
     const [b] = await db.query('SELECT user_id FROM bengkel WHERE id = ?', [req.params.id]);
     if (!b.length) return res.status(404).json({ error: 'Bengkel tidak ditemukan.' });
-    await db.query('DELETE FROM users WHERE id = ? AND role = "bengkel"', [b[0].user_id]);
+    await db.query('DELETE FROM users WHERE id = ? AND role = \'bengkel\'', [b[0].user_id]);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Gagal menghapus bengkel.' });

@@ -1,41 +1,32 @@
--- Skema Database BENGKELIN!
-CREATE DATABASE IF NOT EXISTS bengkelin
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE bengkelin;
-
+-- Schema BENGKELIN! (Postgres / Neon untuk deploy Vercel)
 CREATE TABLE IF NOT EXISTS users (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nama VARCHAR(100) NOT NULL,
-  email VARCHAR(150) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'bengkel', 'pengguna') NOT NULL DEFAULT 'pengguna',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE = InnoDB;
+  id SERIAL PRIMARY KEY,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'bengkel')),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  nama TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS bengkel (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id INT UNSIGNED NOT NULL UNIQUE,
-  nama_bengkel VARCHAR(150) NOT NULL,
-  nomor_wa VARCHAR(20) NOT NULL DEFAULT '6281234567890',
-  alamat VARCHAR(255) NOT NULL DEFAULT '',
-  status ENUM('pending', 'active', 'rejected') NOT NULL DEFAULT 'pending',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE = InnoDB;
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  nama_bengkel TEXT NOT NULL,
+  alamat TEXT NOT NULL DEFAULT '',
+  nomor_wa TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'active', 'rejected', 'suspended')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS layanan (
-  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  bengkel_id INT UNSIGNED NOT NULL,
-  nama VARCHAR(150) NOT NULL,
-  kategori ENUM('Jasa Bengkel', 'Bahan Bakar', 'Kunci Serep', 'Suku Cadang & Oli') NOT NULL,
-  harga INT UNSIGNED NOT NULL DEFAULT 0,
-  stok INT NOT NULL DEFAULT 0,
-  deskripsi TEXT NOT NULL,
-  image_url LONGTEXT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (bengkel_id) REFERENCES bengkel(id) ON DELETE CASCADE,
-  INDEX idx_layanan_kategori (kategori),
-  INDEX idx_layanan_bengkel (bengkel_id)
-) ENGINE = InnoDB;
+  id SERIAL PRIMARY KEY,
+  bengkel_id INTEGER NOT NULL REFERENCES bengkel(id) ON DELETE CASCADE,
+  nama TEXT NOT NULL,
+  kategori TEXT NOT NULL,
+  harga INTEGER NOT NULL DEFAULT 0,
+  stok INTEGER NOT NULL DEFAULT 0,
+  deskripsi TEXT NOT NULL DEFAULT '',
+  image_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
